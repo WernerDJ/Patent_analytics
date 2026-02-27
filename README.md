@@ -59,7 +59,6 @@ This application allows users to upload patent data (Excel files from patent dat
 - Store results in S3
 
 **Why this failed:**
-- **Lambda timeout limit:** 15 minutes maximum
 - **Lambda memory limit:** 10GB maximum
 - **O(n²) algorithmic complexity:** Patent applicant fuzzy matching, network graph generation, and multi-step OpenAI API calls frequently exceeded Lambda limits
 - **Stateful requirements:** Analytics functions depend on maintaining state between operations (e.g., cached top IPCs, applicant groupings)
