@@ -4,6 +4,7 @@ A Django-based web application for analyzing patent data from Excel files, provi
 
 ## Table of Contents
 - [Overview](#overview)
+- [Prerequisites](#Prerequisites)
 - [Architecture Evolution](#architecture-evolution)
 - [Recent Changes & Rationale](#recent-changes--rationale)
 - [Technology Stack](#technology-stack)
@@ -26,6 +27,83 @@ This application allows users to upload patent data (Excel files from patent dat
 
 **Usage Pattern:** 1-2 users per day, ~20 minutes total daily usage.
 
+
+## Prerequisites
+
+### Essential Requirements
+
+#### 1. Docker & Docker Compose
+**All components of this application are containerized.** You must have Docker installed before proceeding.
+
+- **Install Docker Desktop:**
+  - **Linux:** Follow the [official Docker Engine installation guide](https://docs.docker.com/engine/install/)
+  - **macOS/Windows:** Download [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+- **Verify installation:**
+```bash
+  docker --version
+  docker-compose --version
+```
+
+- **Why Docker?** 
+  - Ensures consistent environment across development and production
+  - Bundles Python dependencies, NLTK data, system fonts (CJK support), and matplotlib configuration
+  - Fargate deployment requires container images
+
+#### 2. OpenAI API Key (or Alternative AI Provider)
+**Required for AI-powered analytics features:**
+
+- **IPC Analysis:** Summarizes patent abstracts within the most frequent IPC classification groups, providing human-readable technical descriptions instead of just raw classification codes
+- **Applicant Intelligence:** Generates competitive intelligence reports on top applicants, retrieving company information and translating non-Latin company names (Chinese, Japanese, Korean, etc.)
+
+**Setup:**
+1. Create account at [OpenAI Platform](https://platform.openai.com/)
+2. Generate API key from [API Keys page](https://platform.openai.com/api-keys)
+3. Add to `.env` file: `OPENAI_API_KEY=sk-...`
+
+**Alternative AI Providers:**
+The code can be adapted for other providers (Claude API, Google Gemini, local LLMs) by modifying the `get_top_ipcs_AI_defined()` and `get_top_applicants_AI_description()` methods in `pages/analytic_functions.py`.
+
+**Cost:** ~$0.10-0.50 per analysis session with GPT-4o-mini (used for low cost and speed)
+
+#### 3. AWS Account (for Production Deployment)
+**Required services:**
+- **S3:** Storage for generated plots
+- **ECR:** Container registry
+- **ECS Fargate:** Container orchestration
+- **Secrets Manager:** Secure credential storage
+
+**AWS CLI installation:**
+```bash
+# Linux/macOS
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Configure credentials
+aws configure
+```
+
+### Optional Requirements
+
+#### 4. Git (for Version Control)
+```bash
+# Verify installation
+git --version
+
+# If not installed:
+# Ubuntu/Debian: sudo apt-get install git
+# macOS: xcode-select --install
+```
+
+#### 5. Python 3.12+ (for Local Development)
+Only needed if running outside Docker:
+```bash
+python --version
+pip install -r requirements.txt
+```
+
+---
 ---
 
 ## Architecture Evolution
