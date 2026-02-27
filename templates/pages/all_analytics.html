@@ -1,0 +1,589 @@
+{% extends "_base.html" %}
+{% load crispy_forms_tags %}
+
+
+{% block content %}
+<div class="container-fluid">
+    <!-- File Upload Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2>1. Upload Patent Data</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="upload-form" style="display: inline-block;">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary" id="upload-btn">
+                    <i class="fas fa-upload"></i> Upload & Process
+                </button>
+            </form>
+            
+            <form method="post" id="clear-data-form" style="display: inline-block; margin-left: 10px;">
+                {% csrf_token %}
+                <input type="hidden" name="clear_data" value="true">
+                <button type="submit" class="btn btn-danger" id="clear-data-btn" {% if not has_data %}disabled{% endif %}>
+                    <i class="fas fa-trash-alt"></i> Clear Data
+                </button>
+            </form>
+            
+            {% if upload_success %}
+            <div class="alert alert-success mt-3">
+                <i class="fas fa-check-circle"></i> Data loaded successfully!
+                <p class="mb-0"><small>Your data is kept in memory for 1 hour.</small></p>
+            </div>
+            {% endif %}
+            
+            {% if error %}
+            <div class="alert alert-danger mt-3">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+            {% endif %}
+            
+            <!-- Upload Processing Indicator -->
+            <div id="upload-processing" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <strong>Processing your file upload...</strong>
+                <p>This may take several minutes for large files. Please don't close this page.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Tabs Navigation -->
+    <ul class="nav nav-tabs mb-4" id="analyticsTabs" role="tablist">
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'countries' %}active{% endif %}" 
+                    id="countries-tab" data-bs-toggle="tab" data-bs-target="#countries-content" 
+                    type="button" role="tab" aria-controls="countries-content" aria-selected="{% if active_tab == 'countries' %}true{% else %}false{% endif %}">
+                Country Analysis
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'wordcloud' %}active{% endif %}" 
+                    id="wordcloud-tab" data-bs-toggle="tab" data-bs-target="#wordcloud-content" 
+                    type="button" role="tab" aria-controls="wordcloud-content" aria-selected="{% if active_tab == 'wordcloud' %}true{% else %}false{% endif %}">
+                Word Clouds
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'IPC' %}active{% endif %}" 
+                    id="IPC-tab" data-bs-toggle="tab" data-bs-target="#IPC-content" 
+                    type="button" role="tab" aria-controls="IPC-content" aria-selected="{% if active_tab == 'IPC' %}true{% else %}false{% endif %}">
+                IPC Analytics
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'applicants' %}active{% endif %}" 
+                    id="applicants-tab" data-bs-toggle="tab" data-bs-target="#applicants-content" 
+                    type="button" role="tab" aria-controls="applicants-content" aria-selected="{% if active_tab == 'applicants' %}true{% else %}false{% endif %}">
+                Applicants Analytics
+            </button>
+        </li>
+
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'network_analysis' %}active{% endif %}" 
+                    id="network_analysis-tab" data-bs-toggle="tab" data-bs-target="#network_analysis-content" 
+                    type="button" role="tab" aria-controls="network_analysis-content" aria-selected="{% if active_tab == 'network_analysis' %}true{% else %}false{% endif %}">
+                Applicants-Inventors Network
+            </button>
+        </li>
+
+
+    </ul>
+   
+<!--             ..         .           .       .           .           .           --!>
+<!--      .         .            .          .       .                               --!>
+<!--            .         ..xxxxxxxxxx....               .       .             .    --!>
+<!--    .             MWMWMWWMWMWMWMWMWMWMWMWMW                       .             --!>
+<!--              IIIIMWMWMWMWMWMWMWMWMWMWMWMWMWMttii:        .           .         --!>
+<!-- .      IIYVVXMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWxx...         .           . --!>
+<!--     IWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMx..                   --!>
+<!--   IIWMWMWMWMWMWMWMWMWBY%ZACH%AND%OWENMWMWMWMWMWMWMWMWMWMWMWMWMx..        .     --!>
+<!--    ""MWMWMWMWMWM"""""""".  .:..   ."""""MWMWMWMWMWMWMWMWMWMWMWMWMWti.          --!>
+<!-- .     ""   . `  .: . :. : .  . :.  .  . . .  """"MWMWMWMWMWMWMWMWMWMWMWMWMti=  --!>
+<!--        . .   :` . :   .  .'.' '....xxxxx...,'. '   ' ."""YWMWMWMWMWMWMWMWMWMW+ --!>
+<!--     ; . ` .  . : . .' :  . ..XXXXXXXXXXXXXXXXXXXXx.    `     . "YWMWMWMWMWMWMW --!>
+<!--.    .  .  .    . .   .  ..XXXXXXXXWWWWWWWWWWWWWWWWXXXX.  .     .     """""""   --!>
+<!--        ' :  : . : .  ...XXXXXWWW"   W88N88@888888WWWWWXX.   .   .       . .    --!>
+<!--   . ' .    . :   ...XXXXXXWWW"    M88N88GGGGGG888^8M "WMBX.          .   ..  : --!>
+<!--         :     ..XXXXXXXXWWW"     M88888WWRWWWMW8oo88M   WWMX.     .    :    .  --!>
+<!--           "XXXXXXXXXXXXWW"       WN8888WWWWW  W8@@@8M    BMBRX.         .  : : --!>
+<!--  .       XXXXXXXX=MMWW":  .      W8N888WWWWWWWW88888W      XRBRXX.  .       .  --!>
+<!--     ....  ""XXXXXMM::::. .        W8@889WWWWWM8@8N8W      . . :RRXx.    .      --!>
+<!--         ``...'''  MMM::.:.  .      W888N89999888@8W      . . ::::"RXV    .  :  --!>
+<!-- .       ..'''''      MMMm::.  .      WW888N88888WW     .  . mmMMMMMRXx         --!>
+<!--      ..' .            ""MMmm .  .       WWWWWWW   . :. :,miMM"""  : ""`    .   --!>
+<!--   .                .       ""MMMMmm . .  .  .   ._,mMMMM"""  :  ' .  :         --!>
+<!--               .                  ""MMMMMMMMMMMMM""" .  : . '   .        .      --!>
+<!--          .              .     .    .                      .         .          --!>
+<!--.                                         .          .         .                --!>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="analyticsTabsContent">
+        
+        <!-- Country Analysis Tab -->
+        <div class="tab-pane fade {% if active_tab == 'countries' %}show active{% endif %}" 
+             id="countries-content" role="tabpanel" aria-labelledby="countries-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Country Analysis</h3>
+                </div>
+                <div class="card-body">
+                    {% if has_data %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> Your data is loaded in memory. You can generate visualizations.
+                    </div>
+                    {% endif %}
+                    
+                    <form id="countries-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="analysis_type" value="countries">
+                        <button type="button" id="countries-btn" class="btn btn-secondary"
+                                {% if not has_data %}disabled{% endif %}>
+                            <i class="fas fa-globe"></i> Generate Country Analysis
+                        </button>
+                    </form>
+                    
+                    <!-- Country Processing Indicator -->
+                    <div id="countries-processing" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <strong>Generating country analysis...</strong>
+                        <p>This may take a few moments depending on the data size.</p>
+                    </div>
+                    
+                    <div id="countries-results">
+                        {% if priority_years_img_url %}
+                            <div class="mt-4 text-center">
+                                <h4>Priority Years</h4>
+                                <img src="{{ priority_years_img_url }}" class="analysis-img" alt="Priority Years">
+                            </div>
+                            <div class="mt-4 text-center">
+                                <h4>Top Countries</h4>
+                                <img src="{{ countries_img_url }}" class="analysis-img" alt="Top Countries">
+                            </div>
+                            <div class="mt-4 text-center">
+                                <h4>Patent Flow</h4>
+                                <img src="{{ origin_destcountr_img_url }}" class="analysis-img" alt="Patent Flow">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WordCloud Tab -->
+        <div class="tab-pane fade {% if active_tab == 'wordcloud' %}show active{% endif %}" 
+             id="wordcloud-content" role="tabpanel" aria-labelledby="wordcloud-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Word Cloud Analysis</h3>
+                </div>
+                <div class="card-body">
+                    {% if has_data %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> Your data is loaded in memory. You can generate visualizations.
+                    </div>
+                    {% endif %}
+                    
+                    <form id="wordcloud-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="analysis_type" value="wordcloud">
+                        <button type="button" id="wordcloud-btn" class="btn btn-secondary"
+                                {% if not has_data %}disabled{% endif %}>
+                            <i class="fas fa-cloud"></i> Generate Wordclouds
+                        </button>
+                    </form>
+                    
+                    <!-- Wordcloud Processing Indicator -->
+                    <div id="wordcloud-processing" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <strong>Generating word clouds...</strong>
+                        <p>This may take a few moments depending on the data size.</p>
+                    </div>
+                    
+                    <div id="wordcloud-results">
+                        {% if wcld_nouns_img or wcld_verbs_img or wcld_adjectives_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Nouns</h4>
+                                <img src="{{ wcld_nouns_img }}" class="analysis-img" alt="Nouns Word Cloud">
+                            </div>
+                            <div class="mt-4 text-center">
+                                <h4>Verbs</h4>
+                                <img src="{{ wcld_verbs_img }}" class="analysis-img" alt="Verbs Word Cloud">
+                            </div>
+                            <div class="mt-4 text-center">
+                                <h4>Adjectives</h4>
+                                <img src="{{ wcld_adjectives_img }}" class="analysis-img" alt="Adjectives Word Cloud">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- IPC Tab -->
+        <div class="tab-pane fade {% if active_tab == 'IPC' %}show active{% endif %}" 
+             id="IPC-content" role="tabpanel" aria-labelledby="IPC-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h3>IPC Data Analysis</h3>
+                </div>
+                <div class="card-body">
+                    {% if has_data %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> Your data is loaded in memory. You can generate visualizations.
+                    </div>
+                    {% endif %}
+                    
+                    <form id="IPC-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="analysis_type" value="IPC">
+                        <button type="button" id="IPC-btn" class="btn btn-secondary"
+                                {% if not has_data %}disabled{% endif %}>
+                            <i class="fas fa-cloud"></i> Generate IPC Analytics
+                        </button>
+                    </form>
+                    
+                    <!-- IPC  Processing Indicator -->
+                    <div id="IPC-processing" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <strong>Generating IPC Data Graphics...</strong>
+                        <p>This may take a few moments depending on the data size.</p>
+                    </div>
+                    
+                    <div id="IPC-results">
+                            {% if top_ipcs_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Top 20 IPC Groups</h4>
+                                <img src="{{ top_ipcs_img }}" class="analysis-img" alt="Top 20 IPC groups">
+                            </div>
+                            {% endif %}
+                            {% if top_ipcs_defs_html %}
+                            <div class="mt-4 text-center">
+                                <h4>Top 20 IPC Groups: AI definitions</h4>
+                                <div class="ipc-definitions">
+                                    {{ top_ipcs_defs_html|safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if parallel_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Top IPC's evolution timeline</h4>
+                                <img src="{{ parallel_img }}" class="analysis-img" alt="Top IPC's timeline">
+                            </div>
+                            {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Applicants Tab -->
+        <div class="tab-pane fade {% if active_tab == 'applicants' %}show active{% endif %}" 
+             id="applicants-content" role="tabpanel" aria-labelledby="applicants-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Applicants Data Analysis</h3>
+                </div>
+                <div class="card-body">
+                    {% if has_data %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> Your data is loaded in memory. You can generate visualizations.
+                    </div>
+                    {% endif %}
+                    
+                    <form id="applicants-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="analysis_type" value="applicants">
+                        <button type="button" id="applicants-btn" class="btn btn-secondary"
+                                {% if not has_data %}disabled{% endif %}>
+                            <i class="fas fa-cloud"></i> Generate Applicants Graphics
+                        </button>
+                    </form>
+                    
+                    <!-- Applicants Processing Indicator -->
+                    <div id="applicants-processing" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <strong>Generating Applicants Data Graphics...</strong>
+                        <p>This may take a few moments depending on the data size.</p>
+                    </div>
+                    
+                    <div id="applicants-results">
+                            {% if topAppl_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Top Applicants</h4>
+                                <img src="{{ topAppl_img }}" class="analysis-img" alt="Top Applicants">
+                            </div>
+                            {% endif %}
+
+                            {% if Appl_IPC_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Top IPC groups by Applicant</h4>
+                                <img src="{{ Appl_IPC_img }}" class="analysis-img" alt="Top IPC groups by Apllicant">
+                            </div>
+                            {% endif %}
+
+                            {% if ParalleltopApp_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Top IPC's evolution timeline by Applicant</h4>
+                                <img src="{{ ParalleltopApp_img }}" class="analysis-img" alt="Top IPC's evolution timeline by Applicant">
+                            </div>
+                            {% endif %}
+                            {% if ai_report %}
+                            <div class="ai-report">
+                                <h2>AI Competitor Analysis</h2>
+                                <div class="markdown-table">
+                                    {{ ai_report|safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Applicants - Inventors Network Tab -->
+        <div class="tab-pane fade {% if active_tab == 'network_analysis' %}show active{% endif %}" 
+             id="network_analysis-content" role="tabpanel" aria-labelledby="network_analysis-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Applicants - Inventors Network Analysis</h3>
+                </div>
+                <div class="card-body">
+                    {% if has_data %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> Your data is loaded in memory. You can generate visualizations.
+                    </div>
+                    {% endif %}
+                    
+                    <form id="network_analysis-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="analysis_type" value="network_analysis">
+                        <button type="button" id="network_analysis-btn" class="btn btn-secondary"
+                                {% if not has_data %}disabled{% endif %}>
+                            <i class="fas fa-cloud"></i> Generate Network Graphics
+                        </button>
+                    </form>
+                    
+                    <!-- Network Processing Indicator -->
+                    <div id="network_analysis-processing" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <strong>Generating Network Graphics...</strong>
+                        <p>This may take a few moments depending on the data size.</p>
+                    </div>
+                    
+                    <div id="network_analysis-results">
+                        {% if network_img %}
+                            <div class="mt-4 text-center">
+                                <h4>Applicants-Inventors Network</h4>
+                                <img src="{{ network_img }}" class="img-fluid" alt="Applicants-Inventors Network">
+                            </div>
+                        {% endif %}
+                            {% if connections_html %}
+                                <div class="markdown-table">
+                                    {{ connections_html|safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!--
+                              
+          __.----._
+        .'         `-_
+       /              \              \
+     .'                \              b
+    /       .MMMMM.     |             Mb
+   /        MMMMMMMM.   |            dMM
+  |         MMMMMMMMMM.  \          .MMM
+  |         MMMMMMMMMMM   \        dMMMM
+  |         `MMMMMMMMMM    \      .MMMMP
+.'           MMMMMMMMMM     \    .dMMMP
+|     .HHHHH. `MMMMMMM'      \  /\MMP"
+|   .HHHHHHHH:.               /III\"
+|   HHHHHHHHHHH              /IIIH/
+|   HHHHHHHHHHH         .---/IIIH/ --
+|   HHHHHHHHHH'        /  _/IIIH/    \
+|   HHHHHHHHH'        |  /IIIH/|     |
+`.  `HHHHH'           | /IIIH/ |      \
+  |                   \/IIIH/ /       |
+  |     .IIIIII.       \IIH/ /        |
+  |     IIIIIIIII       `./_'          \
+  |     IIIIIIIII                      |
+  `.    IIIIIIIIII                     |
+   |    IIIIIIIIII   .:::.             |
+   `.   `IIIIIIII' :::::::::           |
+    |    `IIII'   :::::::::::          /
+     `.           :::::::::::         |
+       \          ::::::::::'        /
+        \          ::::::'         .'
+          `-.                      /
+         /I/`-.               .--'
+        (_/     `---.______.--'
+-->
+<style>
+    /* Spinner animation */
+    .spinner-border {
+        display: inline-block;
+        width: 2rem;
+        height: 2rem;
+        vertical-align: text-bottom;
+        border: 0.25em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border .75s linear infinite;
+    }
+    
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Visually hidden class for accessibility */
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .analysis-img {
+    width: 70%;
+    height: auto;
+    display: block;
+    margin: 0 auto;  /* centers horizontally */
+    }   
+
+
+<!--
+
+
+<!--  **********************************************  --!>
+<!--            ____________________________          --!>
+<!--          /                           /\          --!>
+<!--         /   Werner Deichmann Juan  _/ /\         --!>
+<!--        /                           / \/          --!>
+<!--       /                           /\             --!>
+<!--      /___________________________/ /             --!>
+<!--      \___________________________\/              --!>
+<!--       \ \ \ \ \ \ \ \ \ \ \ \ \ \                --!>
+<!--                                                  --!>
+<!--  **********************************************  --!>
+
+
+--!>
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle file upload form submission (needs to be regular form for file upload)
+    document.getElementById('upload-form').addEventListener('submit', function() {
+        document.getElementById('upload-processing').style.display = 'block';
+        const uploadBtn = document.getElementById('upload-btn');
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    });
+
+    // Handle analysis form submissions with AJAX
+    function setupAnalysisForm(buttonId, formId, processingId, resultsId) {
+        const btn = document.getElementById(buttonId);
+        if (btn) {
+            btn.addEventListener('click', function() {
+                const form = document.getElementById(formId);
+                const processing = document.getElementById(processingId);
+                const results = document.getElementById(resultsId);
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+                const analysisType = form.querySelector('[name=analysis_type]').value;
+                
+                // Show processing indicator
+                processing.style.display = 'block';
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                formData.append('analysis_type', analysisType);
+                formData.append('run_analysis', 'true');
+                
+                // Make AJAX request
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // Parse response
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Extract updated results section
+                    const newResults = doc.getElementById(resultsId);
+                    if (newResults) {
+                        results.innerHTML = newResults.innerHTML;
+                    }
+                    
+                    // Hide processing indicator and enable button
+                    processing.style.display = 'none';
+                    btn.disabled = false;
+                    if (analysisType === 'wordcloud') {
+                        btn.innerHTML = '<i class="fas fa-cloud"></i> Generate Word Clouds';
+                    } else if (analysisType === 'countries') {
+                        btn.innerHTML = '<i class="fas fa-globe"></i> Generate Country Analysis';
+                    } else if (analysisType === 'IPC') {
+                        btn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate IPC Analysis';
+                    } else if (analysisType === 'applicants') {
+                        btn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate Applicants Analysis';
+                    } else if (analysisType === 'network_analysis') {
+                        btn.innerHTML = '<i class="fas fa-project-diagram"></i> Generate Network Analysis';
+                    }
+
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred during analysis. Please try again.');
+                    processing.style.display = 'none';
+                    btn.disabled = false;
+                });
+            });
+        }
+    }
+    
+    setupAnalysisForm('wordcloud-btn', 'wordcloud-form', 'wordcloud-processing', 'wordcloud-results');
+    setupAnalysisForm('countries-btn', 'countries-form', 'countries-processing', 'countries-results');
+    setupAnalysisForm('IPC-btn', 'IPC-form', 'IPC-processing', 'IPC-results');
+    setupAnalysisForm('applicants-btn', 'applicants-form', 'applicants-processing', 'applicants-results');
+    setupAnalysisForm('network_analysis-btn', 'network_analysis-form', 'network_analysis-processing', 'network_analysis-results');
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+This is how the .env file containing the access API keys and  to the AWS Identity that I created in order to access
+the rest of API keys, login names and paswwords necessary for the Django to be accessed by settings.py
+Substitute these **** by the actual keys that you create and add a dot to the beginning of the file name so env becomes .env
+
+AWS_ACCESS_KEY_ID=AKI****
+AWS_SECRET_ACCESS_KEY=****
+AWS_STORAGE_BUCKET_NAME=****
+AWS_DEFAULT_REGION=****
+POSTGRES_DB=****
+POSTGRES_USER=****
+POSTGRES_PASSWORD=****

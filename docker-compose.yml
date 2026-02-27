@@ -1,0 +1,77 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  celery:
+    build: .
+    command: celery -A analpat worker --loglevel=info --concurrency=2
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      # AWS Access - values loaded from .env file
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_DEFAULT_REGION}
+      # Database configuration
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres_db
+      - POSTGRES_PORT=5432
+      # Celery configuration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+
+  web:
+    build: .
+    command: gunicorn analpat.wsgi -b 0.0.0.0:8000 --timeout 180
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      - FORCE_REFRESH=1  # Add this line to force reload
+      # AWS Access - values loaded from .env file
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_DEFAULT_REGION}
+      # Database configuration
+      - POSTGRES_DB=analpat_db
+      - POSTGRES_HOST=postgres_db
+      - POSTGRES_PORT=5432
+      # Celery configuration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+
+  db:
+    image: postgres:14
+    container_name: postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+volumes:
+  postgres_data:
+  redis_data:

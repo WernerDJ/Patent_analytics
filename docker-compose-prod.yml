@@ -1,0 +1,38 @@
+services:
+  vault:
+    image: hashicorp/vault:1.14.5
+    container_name: vault
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+    volumes:
+      - ./vault/config:/vault/config
+      - ./vault/data:/vault/file
+    command: vault server -config=/vault/config/config.hcl
+
+  db:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+
+  web:
+    build: .
+    command: gunicorn analpat.wsgi -b 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - vault
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=root  # replace with secure token management in prod
+
+volumes:
+  postgres_data:

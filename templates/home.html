@@ -1,0 +1,148 @@
+{% extends "_base.html" %}
+{% load static %}
+
+{% block title %}Home{% endblock title %}
+
+{% block content %}
+  <div style="max-width: 900px; margin: 0 auto; padding: 2em;">
+
+    <div style="display: flex; align-items: flex-start; margin-bottom: 1.5em;">
+      <img src="{% static 'images/dfp.jpg' %}" alt="Patent Analysis Graphic"
+           style="width: 140px; height: auto; margin-right: 1.5em; border: 1px solid #ccc; border-radius: 6px;">
+
+      <div>
+        <h1 style="font-size: 2.2em; margin-bottom: 0.5em;">Welcome to the Patent Analysis Platform</h1>
+        <p style="font-size: 1.2em; line-height: 1.6;">
+          This web platform provides data analysis tools tailored for intellectual property professionals.
+          You can generate insights and visualizations from international patent data in just a few steps.
+        </p>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 1.5em; font-size: 1.8em;">How to Use</h2>
+    <ol style="font-size: 1.1em; line-height: 1.6; padding-left: 1.2em;">
+      <li>Go to the <a href="https://patentscope.wipo.int/search/en/search.jsf" target="_blank">WIPO Patentscope</a> search page.</li>
+      <li>Sign in to your WIPO account to enable downloading results.</li>
+      <li>Perform your patent search using any filters of interest (IPC codes, keywords, applicant, etc.).</li>
+      <li>Download the result list as an Excel file (XLS format).</li>
+      <li>Return here and upload the Excel file to generate custom visual analytics.</li>
+    </ol>
+
+    <div style="margin-top: 2em;">
+      <h3 style="font-size: 1.6em;">Watch this short tutorial:</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin-top: 1em; border: 1px solid #ccc; border-radius: 8px;">
+        <iframe src="https://www.youtube.com/embed/eo31FWVMW_o?si=hmpVeIAeSrjxdBOC"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+        </iframe>
+ 
+      </div>
+    </div>
+    <br>
+       <p style="font-size: 1.2em; line-height: 1.6;">
+        This website is still under development, so for now, there is no need to log in to access advanced features. 
+        Please be patient with the generation time of the figures, currently, this web uses only basic cloud resources.
+        The web page might become unresponsive if you load more than 3000 rows of data, so please narrow down your results.
+        This problem can be solved by usign more computing power, but that will depend on the interest arisen by this site. 
+        In future versions, signing up will allow users to save their searches and prevent the automatic deletion of generated graphics.
+        </p>
+  </div>
+   <hr style="margin: 3em 0;">
+
+  <div style="max-width: 1000px; margin: 0 auto; padding: 1em;">
+    <h2 style="font-size: 1.8em; margin-bottom: 0.5em;">Gallery of Sample Visualizations</h2>
+    <p style="font-size: 1.1em;">Explore example graphics generated from international patent data.</p>
+
+    <!-- Countries Stats -->
+
+    <h3 style="margin-top: 2em; font-size: 1.5em;">Countries Statistics</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/frequency_priority_years_r.png' %}" alt="priority patent filling timeline"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Priority patent filling, yearly frequency</p>
+      </div>
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/top_priority_countries_r.png' %}" alt="Top Priority Countries"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Top Priority Filing Countries</p>
+      </div>
+
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/top_countries_r.png' %}" alt="Top Countries"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Top 10 countries by publication</p>
+      </div>
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/origin_destcountr_r.png' %}" alt="Origin-Destination Map"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Patent priority vs destination countries</p>
+      </div>
+    </div>
+
+    <!-- Word frequency stats Wordclouds -->
+    <h3 style="margin-top: 2em; font-size: 1.5em;">Word frequency statistics: Wordclouds</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/wcld_nouns_r.png' %}" alt="Noun Wordcloud"
+             style="width: 90%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Wordcloud (Nouns)</p>
+      </div>
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/wcld_verbs_r.png' %}" alt="Verb Wordcloud"
+             style="width: 90%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Wordcloud (Verbs)</p>
+      </div>
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/wcld_adjectives_r.png' %}" alt="Adjective Wordcloud"
+             style="width: 70%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Wordcloud (Adjectives)</p>
+      </div>
+    </div>
+
+    <!-- IPC and Applicants Stats -->
+    <h3 style="margin-top: 2em; font-size: 1.5em;">IPC and Applicants Statistics</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/top_ipcs_r.png' %}" alt="Top IPC Codes"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Top 10 IPC groups</p>
+      </div>
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/parallel_coordinates_r.png' %}" alt="Parallel Coordinates"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Technology evolution over time</p>
+      </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/Top20Appl_r.png' %}" alt="Top 20 Applicants"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Top 20 Applicants</p>
+      </div>
+      <div style="flex: 1 1 48%;">
+    <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/Applicants_parallel_r.png' %}" alt="Top 5 Applicants timeline"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Top 5 Applicants patent publication timeline</p>
+      </div>
+        <img src="{% static 'images/TopAppl_IPC_r.png' %}" alt="Most frequent IPC groups by Applicant"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Most frequent IPC groups by Applicant</p>
+      </div>
+    </div>
+
+    <!-- Tech Transfer Landscape -->
+    <h3 style="margin-top: 2em; font-size: 1.5em;">Technology Transfer Landscape</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em;">
+      <div style="flex: 1 1 48%;">
+        <img src="{% static 'images/network_plot.png' %}" alt="Inventor Transfer Network"
+             style="width: 100%; border: 1px solid #ccc; border-radius: 6px;">
+        <p style="text-align: center;">Flow of Technological Know-How Through Shared Inventors</p>
+        <p style="text-align: center;">Applicants in the graph may have further connections out of this circle</p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

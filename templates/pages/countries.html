@@ -1,0 +1,112 @@
+{% extends "_base.html" %}
+{% load static %}
+{% block title %}Patent Analysis tools{% endblock title %}
+
+{% block content %}
+<style>
+.spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #3498db;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
+  <h1>Upload Excel File and Set Filters</h1>
+  <form id="analysis-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Analyze" id="submit-btn">
+  </form>
+
+  <div id="processing-indicator" style="display:none;margin:20px 0;text-align:center;">
+    <div class="spinner"></div>
+    <p><strong>Processing your analysis...</strong><br>This may take several minutes for large files.<br>Please don’t close this page.</p>
+  </div>
+
+  <div id="results"></div>
+  <div id="error" style="color:red;"></div>
+
+  <script>
+    const form = document.getElementById('analysis-form');
+    const resultsDiv = document.getElementById('results');
+    const errorDiv = document.getElementById('error');
+    const processing = document.getElementById('processing-indicator');
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      resultsDiv.innerHTML = '';
+      errorDiv.textContent = '';
+      processing.style.display = 'block';
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.value = 'Processing...';
+
+      const formData = new FormData(form);
+      fetch("{% url 'countries' %}", { method: "POST", body: formData })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.task_id) {
+            throw new Error('No task_id returned');
+          }
+          pollTask(data.task_id);
+        })
+        .catch(err => {
+          errorDiv.textContent = err.message || 'Unexpected error.';
+          processing.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.value = 'Analyze';
+        });
+    });
+
+    function pollTask(taskId) {
+      const url = "{% url 'task_status' %}" + "?task_id=" + encodeURIComponent(taskId);
+      const interval = setInterval(() => {
+        fetch(url)
+          .then(r => r.json())
+          .then(data => {
+            if (data.status === 'pending' || data.status === 'STARTED') {
+              return;
+            }
+            clearInterval(interval);
+
+            const submitBtn = document.getElementById('submit-btn');
+            processing.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.value = 'Analyze';
+
+            if (data.status === 'failure' || data.status === 'error') {
+              errorDiv.textContent = data.error || data.message || 'Analysis failed.';
+              return;
+            }
+            const res = data.result || {};
+            if (res.error) {
+              errorDiv.textContent = res.error;
+              return;
+            }
+            resultsDiv.innerHTML = `
+              ${res.priority_years_img_url ? `<h2>Priority filing frequency timeline</h2><img src="${res.priority_years_img_url}" width="70%" alt="Priority Years"><br><br>` : ''}
+              ${res.priority_countries_img_url ? `<h2>Priority Countries ranking</h2><img src="${res.priority_countries_img_url}" width="70%" alt="Priority Countries"><br><br>` : ''}
+              ${res.countries_img_url ? `<h2>Top 10 Publication Countries</h2><img src="${res.countries_img_url}" width="70%" alt="Top 10 Countries"><br><br>` : ''}
+              ${res.origin_destcountr_img_url ? `<h2>Top 10 Priority Countries, where further patents are filed</h2><img src="${res.origin_destcountr_img_url}" width="70%"  alt="Origin-Destination Countries">` : ''}
+            `;
+          })
+          .catch(err => {
+            clearInterval(interval);
+            errorDiv.textContent = err.message || 'Polling error.';
+            processing.style.display = 'none';
+          });
+      }, 2000);
+    }
+  </script>
+{% endblock content %}
+
+

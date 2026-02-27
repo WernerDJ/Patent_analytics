@@ -1,0 +1,42 @@
+{% extends "_base.html" %}
+{% block content %}
+<div class="progress-container">
+    <h2>Processing Your Analysis</h2>
+    <div class="progress">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+             role="progressbar" style="width: 0%"></div>
+    </div>
+    <p id="status-message">Starting analysis...</p>
+</div>
+
+<script>
+const taskId = "{{ task_id }}";
+const progressUrl = `/analysis/status/${taskId}/`;
+
+function checkProgress() {
+    fetch(progressUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.ready) {
+                if (data.successful) {
+                    // Redirect to results page with analysis data
+                    window.location.href = `/analysis/results/?data=${encodeURIComponent(JSON.stringify(data.result))}`;
+                } else {
+                    document.getElementById('status-message').innerHTML = 
+                        `Error: ${data.error}`;
+                }
+            } else {
+                // Update progress bar
+                const progressBar = document.querySelector('.progress-bar');
+                const currentWidth = parseInt(progressBar.style.width) || 0;
+                const newWidth = Math.min(currentWidth + 5, 90);
+                progressBar.style.width = `${newWidth}%`;
+                setTimeout(checkProgress, 2000);
+            }
+        });
+}
+
+// Start checking progress
+checkProgress();
+</script>
+{% endblock %}
