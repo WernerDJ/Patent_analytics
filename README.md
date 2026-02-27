@@ -101,11 +101,4 @@ This application allows users to upload patent data (Excel files from patent dat
 - 30-40 second cold start when container first launches (Fargate task startup)
 - After optimizations, most analyses complete in <2 minutes
 
----
 
-## Recent Changes & Rationale
-
-### 1. Code Optimizations (December 2024 - January 2025)
-
-**Problem:** Original O(n²) loops caused 5-15 minute analysis times:
-```python
