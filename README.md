@@ -1,6 +1,7 @@
 # Patent Analytics Platform
 
 A Django-based web application for analyzing patent data from Excel files, providing visualizations and insights on patent trends, applicants, IPCs, and inventor networks.
+The web app draft version can be accessed here: http://app.ip-xpert.com:8000
 
 ## Table of Contents
 - [Overview](#overview)
